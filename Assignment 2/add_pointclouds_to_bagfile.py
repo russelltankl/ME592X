@@ -66,6 +66,7 @@ if __name__ == '__main__':
     from cv_bridge import CvBridge, CvBridgeError
     import struct
     import tf
+	from tf import msg
     
     if not args.outputbag:
         args.outputbag = os.path.splitext(args.inputbag)[0] + "-points.bag"
@@ -150,14 +151,14 @@ if __name__ == '__main__':
                     outbag.write("/camera/rgb/image_color",rgb_image_color,t)
 
                     # generate monochrome image from color image
-                    cv_rgb_image_mono = bridge.imgmsg_to_cv(rgb_image_color, "mono8")
-                    rgb_image_mono = bridge.cv_to_imgmsg(cv_rgb_image_mono)
+                    cv_rgb_image_mono = bridge.imgmsg_to_cv2(rgb_image_color, "mono8")
+                    rgb_image_mono = bridge.cv2_to_imgmsg(cv_rgb_image_mono)
                     rgb_image_mono.header = rgb_image_color.header
                     outbag.write("/camera/rgb/image_mono",rgb_image_mono,t)
     
                     # generate depth and colored point cloud
-                    cv_depth_image = bridge.imgmsg_to_cv(depth_image, "passthrough")
-                    cv_rgb_image_color = bridge.imgmsg_to_cv(rgb_image_color, "bgr8")
+                    cv_depth_image = bridge.imgmsg_to_cv2(depth_image, "passthrough")
+                    cv_rgb_image_color = bridge.imgmsg_to_cv2(rgb_image_color, "bgr8")
     #                
                     centerX = depth_camera_info.K[2]
                     centerY = depth_camera_info.K[5]
