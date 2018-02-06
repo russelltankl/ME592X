@@ -16,7 +16,7 @@ depth_path = os.path.join(Defaultwd, "depth").replace("\\", "/") + "/%s"  # Gene
 
 # Loop pointcloud generation.
 l = len(results)
-for a in range(0, 1):
+for a in range(0, l):
     b = str("{0:.6f}".format(results[a][0])) + ".png"  # Read the results for rgb and convert to string.
     c = str("{0:.6f}".format(results[a][1])) + ".png"  # Read the results for depth and convert to string.
     final = "image" + str(a+1) + ".ply"  # Output .ply naming convention.
