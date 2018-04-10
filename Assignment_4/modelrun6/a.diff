@@ -1,0 +1,617 @@
+diff --git a/LICENSE b/LICENSE
+old mode 100644
+new mode 100755
+diff --git a/README.md b/README.md
+old mode 100644
+new mode 100755
+diff --git a/cnn.py b/cnn.py
+old mode 100644
+new mode 100755
+index 06d092b..98f38cd
+--- a/cnn.py
++++ b/cnn.py
+@@ -30,6 +30,7 @@ def getModel(img_width, img_height, img_channels, output_dim, weights_path):
+        model: A Model instance.
+     """
+     model = cnn_models.resnet8(img_width, img_height, img_channels, output_dim)
++    
+ 
+     if weights_path:
+         try:
+@@ -63,7 +64,7 @@ def trainModel(train_data_generator, val_data_generator, model, initial_epoch):
+     # Configure training process
+     model.compile(loss=[utils.hard_mining_mse(model.k_mse),
+                         utils.hard_mining_entropy(model.k_entropy)],
+-                        optimizer='adam', decay=1e-5, loss_weights=[model.alpha, model.beta])
++                        optimizer='adam', loss_weights=[model.alpha, model.beta])
+ 
+     # Save model with the lowest validation loss
+     weights_path = os.path.join(FLAGS.experiment_rootdir, 'weights_{epoch:03d}.h5')
+@@ -90,75 +91,86 @@ def trainModel(train_data_generator, val_data_generator, model, initial_epoch):
+ 
+ 
+ def _main():
++    #with tf.device('/device:GPU:0'):
++        #print(os.environ['CUDA_VISIBLE_DEVICES']="0")## assign which device to use (allow 1)
++        os.environ['CUDA_VISIBLE_DEVICES']="0"
++        # session = tf.Session(config=tf.ConfigProto(log_device_placement=True))
++       
++        from keras import backend as K
++        config = tf.ConfigProto()
++        sess = tf.Session(config=config)
++        config.gpu_options.allow_growth = True
++        
++        K.set_session(sess)
+ 
+-    # Create the experiment rootdir if not already there
+-    if not os.path.exists(FLAGS.experiment_rootdir):
+-        os.makedirs(FLAGS.experiment_rootdir)
++        # Create the experiment rootdir if not already there
++        if not os.path.exists(FLAGS.experiment_rootdir):
++            os.makedirs(FLAGS.experiment_rootdir)
+ 
+-    # Input image dimensions
+-    img_width, img_height = FLAGS.img_width, FLAGS.img_height
+-    
+-    # Cropped image dimensions
+-    crop_img_width, crop_img_height = FLAGS.crop_img_width, FLAGS.crop_img_height
+-
+-    # Image mode
+-    if FLAGS.img_mode=='rgb':
+-        img_channels = 3
+-    elif FLAGS.img_mode == 'grayscale':
+-        img_channels = 1
+-    else:
+-        raise IOError("Unidentified image mode: use 'grayscale' or 'rgb'")
++        # Input image dimensions
++        img_width, img_height = FLAGS.img_width, FLAGS.img_height
+         
+-    # Output dimension (one for steering and one for collision)
+-    output_dim = 1
+-
+-    # Generate training data with real-time augmentation
+-    train_datagen = utils.DroneDataGenerator(rotation_range = 0.2,
+-                                             rescale = 1./255,
+-                                             width_shift_range = 0.2,
+-                                             height_shift_range=0.2)
+-
+-    train_generator = train_datagen.flow_from_directory(FLAGS.train_dir,
+-                                                        shuffle = True,
+-                                                        color_mode=FLAGS.img_mode,
+-                                                        target_size=(img_width, img_height),
+-                                                        crop_size=(crop_img_height, crop_img_width),
+-                                                        batch_size = FLAGS.batch_size)
+-
+-    # Generate validation data with real-time augmentation
+-    val_datagen = utils.DroneDataGenerator(rescale = 1./255)
+-
+-    val_generator = val_datagen.flow_from_directory(FLAGS.val_dir,
+-                                                        shuffle = True,
+-                                                        color_mode=FLAGS.img_mode,
+-                                                        target_size=(img_width, img_height),
+-                                                        crop_size=(crop_img_height, crop_img_width),
+-                                                        batch_size = FLAGS.batch_size)
+-
+-    # Weights to restore
+-    weights_path = os.path.join(FLAGS.experiment_rootdir, FLAGS.weights_fname)
+-    initial_epoch = 0
+-    if not FLAGS.restore_model:
+-        # In this case weights will start from random
+-        weights_path = None
+-    else:
+-        # In this case weigths will start from the specified model
+-        initial_epoch = FLAGS.initial_epoch
+-
+-    # Define model
+-    model = getModel(crop_img_width, crop_img_height, img_channels,
+-                        output_dim, weights_path)
+-
+-    # Save the architecture of the model as png
+-    plot_arch_path = os.path.join(FLAGS.experiment_rootdir, 'architecture.png')
+-    plot_model(model, to_file=plot_arch_path)
+-
+-    # Serialize model into json
+-    json_model_path = os.path.join(FLAGS.experiment_rootdir, FLAGS.json_model_fname)
+-    utils.modelToJson(model, json_model_path)
+-
+-    # Train model
+-    trainModel(train_generator, val_generator, model, initial_epoch)
++        # Cropped image dimensions
++        crop_img_width, crop_img_height = FLAGS.crop_img_width, FLAGS.crop_img_height
++
++        # Image mode
++        if FLAGS.img_mode=='rgb':
++            img_channels = 3
++        elif FLAGS.img_mode == 'grayscale':
++            img_channels = 1
++        else:
++            raise IOError("Unidentified image mode: use 'grayscale' or 'rgb'")
++            
++        # Output dimension (one for steering and one for collision)
++        output_dim = 1
++
++        # Generate training data with real-time augmentation
++        train_datagen = utils.DroneDataGenerator(rotation_range = 0.2,
++                                                 rescale = 1./255,
++                                                 width_shift_range = 0.2,
++                                                 height_shift_range=0.2)
++
++        train_generator = train_datagen.flow_from_directory(FLAGS.train_dir,
++                                                            shuffle = True,
++                                                            color_mode=FLAGS.img_mode,
++                                                            target_size=(img_width, img_height),
++                                                            crop_size=(crop_img_height, crop_img_width),
++                                                            batch_size = FLAGS.batch_size)
++
++        # Generate validation data with real-time augmentation
++        val_datagen = utils.DroneDataGenerator(rescale = 1./255)
++
++        val_generator = val_datagen.flow_from_directory(FLAGS.val_dir,
++                                                            shuffle = True,
++                                                            color_mode=FLAGS.img_mode,
++                                                            target_size=(img_width, img_height),
++                                                            crop_size=(crop_img_height, crop_img_width),
++                                                            batch_size = FLAGS.batch_size)
++
++        # Weights to restore
++        weights_path = os.path.join(FLAGS.experiment_rootdir, FLAGS.weights_fname)
++        initial_epoch = 0
++        if not FLAGS.restore_model:
++            # In this case weights will start from random
++            weights_path = None
++        else:
++            # In this case weigths will start from the specified model
++            initial_epoch = FLAGS.initial_epoch
++
++        # Define model
++        model = getModel(crop_img_width, crop_img_height, img_channels,
++                            output_dim, weights_path)
++
++        # Save the architecture of the model as png
++       # plot_arch_path = os.path.join(FLAGS.experiment_rootdir, 'architecture.dot')
++       # plot_model(model, to_file=plot_arch_path)
++
++        # Serialize model into json
++        json_model_path = os.path.join(FLAGS.experiment_rootdir, FLAGS.json_model_fname)
++        utils.modelToJson(model, json_model_path)
++
++        # Train model
++        trainModel(train_generator, val_generator, model, initial_epoch)
+ 
+ 
+ def main(argv):
+diff --git a/cnn_models.py b/cnn_models.py
+old mode 100644
+new mode 100755
+index d6ea889..7139081
+--- a/cnn_models.py
++++ b/cnn_models.py
+@@ -1,11 +1,25 @@
++from __future__ import print_function
++from __future__ import absolute_import
++from __future__ import division
++
++
+ import keras
+ from keras.models import Model
+ from keras.layers import Dense, Dropout, Activation, Flatten, Input
+ from keras.layers import Conv2D, MaxPooling2D
+ from keras.layers.merge import add
+ from keras import regularizers
+-
+-
++from keras import initializers
++from keras import constraints
++from keras.engine import Layer
++from keras.engine import InputSpec
++from keras.utils import conv_utils
++from keras.legacy import interfaces
++#import depth_class
++from keras.layers import DepthwiseConv2D
++#import DepthwiseConv2D
++#from keras.applications import mobilenet
++from keras import backend as K
+ 
+ def resnet8(img_width, img_height, img_channels, output_dim):
+     """
+@@ -91,3 +105,91 @@ def resnet8(img_width, img_height, img_channels, output_dim):
+     print(model.summary())
+ 
+     return model
++'''
++def MobileNet(input_shape=None,
++              alpha=1.0,
++              depth_multiplier=1,
++              dropout=1e-3,
++              include_top=True,
++              weights='imagenet',
++              input_tensor=None,
++              pooling=None,
++              classes=1000,
++              output_dim):
++
++'''
++
++def MobileNet(img_width, img_height, img_channels, output_dim,
++              depth_multiplier=1,input_tensor=None,
++              dropout=1e-3):
++    """
++    Define model architecture.
++    
++    # Arguments
++       img_width: Target image widht.
++       img_height: Target image height.
++       img_channels: Target image channels.
++       output_dim: Dimension of model output.
++       
++    # Returns
++       model: A Model instance.
++    """
++
++    # Input
++    img_input = Input(shape=(img_height, img_width, img_channels))
++
++
++    x1 = Conv2D(32, (5, 5), strides=[2,2], padding='same')(img_input)
++    x1 = MaxPooling2D(pool_size=(3, 3), strides=[2,2])(x1)
++
++    # First residual block
++    x2=DepthwiseConv2D((3, 3),
++                        padding='valid',
++                        depth_multiplier=depth_multiplier,
++                        strides=(2,2),
++                        use_bias=False)(x1)
++    x2 = keras.layers.normalization.BatchNormalization()(x2)
++    x2 = Activation('relu')(x2)
++
++    x2 = Conv2D(32,(1, 1), padding='same', use_bias=False, strides=(1, 1))(x2)
++    x2 = keras.layers.normalization.BatchNormalization()(x2)
++    x2 = Activation('relu')(x2)
++
++    x2 = MaxPooling2D(pool_size=(3, 3), strides=[2,2])(x2)
++
++    x2 = Conv2D(32, (5, 5), strides=[2,2], padding='same')(x2)
++    x2 = MaxPooling2D(pool_size=(3, 3), strides=[2,2])(x2)
++    
++    x2=DepthwiseConv2D((2, 2),
++                         padding='valid',
++                         depth_multiplier=depth_multiplier,
++                         strides=(1,1),
++                         use_bias=False)(x2)
++
++
++    x2 = keras.layers.normalization.BatchNormalization()(x2)
++    x2 = Activation('relu')(x2)
++    x2 = Conv2D(64,(1, 1),
++               padding='same',
++               use_bias=False,
++               strides=(1, 1))(x2)
++
++    x2 = keras.layers.normalization.BatchNormalization()(x2)
++    x2 = Activation('relu')(x2)
++    
++    x3 = Flatten()(x2)
++    x3 = Activation('relu')(x3)
++    x3 = Dropout(0.5)(x3)
++
++    # Steering channel
++    steer = Dense(output_dim)(x3)
++
++    # Collision channel
++    coll = Dense(output_dim)(x3)
++    coll = Activation('sigmoid')(coll)
++
++    # Define steering-collision model
++    model = Model(inputs=[img_input], outputs=[steer, coll])
++    print(model.summary())
++
++    return model
+\ No newline at end of file
+diff --git a/common_flags.py b/common_flags.py
+old mode 100644
+new mode 100755
+index 49c818e..7b587f6
+--- a/common_flags.py
++++ b/common_flags.py
+@@ -11,23 +11,23 @@ gflags.DEFINE_integer('img_height', 240, 'Target Image Height')
+ gflags.DEFINE_integer('crop_img_width', 200, 'Cropped image widht')
+ gflags.DEFINE_integer('crop_img_height', 200, 'Cropped image height')
+ 
+-gflags.DEFINE_string('img_mode', "grayscale", 'Load mode for images, either '
++gflags.DEFINE_string('img_mode', "rgb", 'Load mode for images, either '
+                      'rgb or grayscale')
+ 
+ # Training
+-gflags.DEFINE_integer('batch_size', 32, 'Batch size in training and evaluation')
+-gflags.DEFINE_integer('epochs', 100, 'Number of epochs for training')
++gflags.DEFINE_integer('batch_size', 128, 'Batch size in training and evaluation')
++gflags.DEFINE_integer('epochs', 50, 'Number of epochs for training')
+ gflags.DEFINE_integer('log_rate', 10, 'Logging rate for full model (epochs)')
+ gflags.DEFINE_integer('initial_epoch', 0, 'Initial epoch to start training')
+ 
+ # Files
+-gflags.DEFINE_string('experiment_rootdir', "./model", 'Folder '
++gflags.DEFINE_string('experiment_rootdir', "./modelrun6", 'Folder '
+                      ' containing all the logs, model weights and results')
+-gflags.DEFINE_string('train_dir', "../training", 'Folder containing'
++gflags.DEFINE_string('train_dir', "../preprocessed/training", 'Folder containing'
+                      ' training experiments')
+-gflags.DEFINE_string('val_dir', "../validation", 'Folder containing'
++gflags.DEFINE_string('val_dir', "../preprocessed/validation", 'Folder containing'
+                      ' validation experiments')
+-gflags.DEFINE_string('test_dir', "../testing", 'Folder containing'
++gflags.DEFINE_string('test_dir', "../preprocessed/testing", 'Folder containing'
+                      ' testing experiments')
+ 
+ # Model
+diff --git a/constants.py b/constants.py
+old mode 100644
+new mode 100755
+diff --git a/data_preprocessing/time_stamp_matching.py b/data_preprocessing/time_stamp_matching.py
+old mode 100644
+new mode 100755
+diff --git a/drone_control/dronet/README.md b/drone_control/dronet/README.md
+old mode 100644
+new mode 100755
+diff --git a/drone_control/dronet/configs/outdoor.yaml b/drone_control/dronet/configs/outdoor.yaml
+old mode 100644
+new mode 100755
+diff --git a/drone_control/dronet/dronet_control/CMakeLists.txt b/drone_control/dronet/dronet_control/CMakeLists.txt
+old mode 100644
+new mode 100755
+diff --git a/drone_control/dronet/dronet_control/include/dronet_control/deep_navigation.h b/drone_control/dronet/dronet_control/include/dronet_control/deep_navigation.h
+old mode 100644
+new mode 100755
+diff --git a/drone_control/dronet/dronet_control/launch/deep_navigation.launch b/drone_control/dronet/dronet_control/launch/deep_navigation.launch
+old mode 100644
+new mode 100755
+diff --git a/drone_control/dronet/dronet_control/package.xml b/drone_control/dronet/dronet_control/package.xml
+old mode 100644
+new mode 100755
+diff --git a/drone_control/dronet/dronet_control/src/deep_navigation.cpp b/drone_control/dronet/dronet_control/src/deep_navigation.cpp
+old mode 100644
+new mode 100755
+diff --git a/drone_control/dronet/dronet_perception/CMakeLists.txt b/drone_control/dronet/dronet_perception/CMakeLists.txt
+old mode 100644
+new mode 100755
+diff --git a/drone_control/dronet/dronet_perception/__init__.py b/drone_control/dronet/dronet_perception/__init__.py
+old mode 100644
+new mode 100755
+diff --git a/drone_control/dronet/dronet_perception/launch/bebop_launch.launch b/drone_control/dronet/dronet_perception/launch/bebop_launch.launch
+old mode 100644
+new mode 100755
+diff --git a/drone_control/dronet/dronet_perception/launch/dronet_launch.launch b/drone_control/dronet/dronet_perception/launch/dronet_launch.launch
+old mode 100644
+new mode 100755
+diff --git a/drone_control/dronet/dronet_perception/launch/full_perception_launch.launch b/drone_control/dronet/dronet_perception/launch/full_perception_launch.launch
+old mode 100644
+new mode 100755
+diff --git a/drone_control/dronet/dronet_perception/msg/CNN_out.msg b/drone_control/dronet/dronet_perception/msg/CNN_out.msg
+old mode 100644
+new mode 100755
+diff --git a/drone_control/dronet/dronet_perception/package.xml b/drone_control/dronet/dronet_perception/package.xml
+old mode 100644
+new mode 100755
+diff --git a/drone_control/dronet/dronet_perception/setup.py b/drone_control/dronet/dronet_perception/setup.py
+old mode 100644
+new mode 100755
+diff --git a/drone_control/dronet/dronet_perception/src/Dronet/Dronet.py b/drone_control/dronet/dronet_perception/src/Dronet/Dronet.py
+old mode 100644
+new mode 100755
+diff --git a/drone_control/dronet/dronet_perception/src/Dronet/__init__.py b/drone_control/dronet/dronet_perception/src/Dronet/__init__.py
+old mode 100644
+new mode 100755
+diff --git a/drone_control/dronet/dronet_perception/src/Dronet/utils.py b/drone_control/dronet/dronet_perception/src/Dronet/utils.py
+old mode 100644
+new mode 100755
+diff --git a/evaluation.py b/evaluation.py
+old mode 100644
+new mode 100755
+diff --git a/images/architecture.png b/images/architecture.png
+old mode 100644
+new mode 100755
+diff --git a/images/dataset.png b/images/dataset.png
+old mode 100644
+new mode 100755
+diff --git a/img_utils.py b/img_utils.py
+old mode 100644
+new mode 100755
+diff --git a/log_utils.py b/log_utils.py
+old mode 100644
+new mode 100755
+diff --git a/logz.py b/logz.py
+old mode 100644
+new mode 100755
+diff --git a/model/model_struct.json b/model/model_struct.json
+deleted file mode 100644
+index 1d5a9a5..0000000
+--- a/model/model_struct.json
++++ /dev/null
+@@ -1 +0,0 @@
+-{"class_name": "Model", "keras_version": "2.0.2", "backend": "tensorflow", "config": {"input_layers": [["input_1", 0, 0]], "output_layers": [["dense_1", 0, 0], ["activation_8", 0, 0]], "name": "model_1", "layers": [{"class_name": "InputLayer", "name": "input_1", "config": {"batch_input_shape": [null, 200, 200, 1], "dtype": "float32", "name": "input_1", "sparse": false}, "inbound_nodes": []}, {"class_name": "Conv2D", "name": "conv2d_1", "config": {"bias_initializer": {"class_name": "Zeros", "config": {}}, "filters": 32, "kernel_initializer": {"class_name": "VarianceScaling", "config": {"scale": 1.0, "distribution": "uniform", "mode": "fan_avg", "seed": null}}, "kernel_size": [5, 5], "activation": "linear", "activity_regularizer": null, "name": "conv2d_1", "bias_constraint": null, "kernel_constraint": null, "kernel_regularizer": null, "data_format": "channels_last", "bias_regularizer": null, "use_bias": true, "dilation_rate": [1, 1], "padding": "same", "trainable": true, "strides": [2, 2]}, "inbound_nodes": [[["input_1", 0, 0, {}]]]}, {"class_name": "MaxPooling2D", "name": "max_pooling2d_1", "config": {"trainable": true, "data_format": "channels_last", "strides": [2, 2], "padding": "valid", "name": "max_pooling2d_1", "pool_size": [3, 3]}, "inbound_nodes": [[["conv2d_1", 0, 0, {}]]]}, {"class_name": "BatchNormalization", "name": "batch_normalization_1", "config": {"epsilon": 0.001, "gamma_constraint": null, "momentum": 0.99, "beta_regularizer": null, "moving_mean_initializer": {"class_name": "Zeros", "config": {}}, "name": "batch_normalization_1", "center": true, "gamma_regularizer": null, "beta_initializer": {"class_name": "Zeros", "config": {}}, "axis": -1, "gamma_initializer": {"class_name": "Ones", "config": {}}, "scale": true, "moving_variance_initializer": {"class_name": "Ones", "config": {}}, "trainable": true, "beta_constraint": null}, "inbound_nodes": [[["max_pooling2d_1", 0, 0, {}]]]}, {"class_name": "Activation", "name": "activation_1", "config": {"activation": "relu", "trainable": true, "name": "activation_1"}, "inbound_nodes": [[["batch_normalization_1", 0, 0, {}]]]}, {"class_name": "Conv2D", "name": "conv2d_2", "config": {"bias_initializer": {"class_name": "Zeros", "config": {}}, "filters": 32, "kernel_initializer": {"class_name": "VarianceScaling", "config": {"scale": 2.0, "distribution": "normal", "mode": "fan_in", "seed": null}}, "kernel_size": [3, 3], "activation": "linear", "activity_regularizer": null, "name": "conv2d_2", "bias_constraint": null, "kernel_constraint": null, "kernel_regularizer": {"class_name": "L1L2", "config": {"l2": 9.999999747378752e-05, "l1": 0.0}}, "data_format": "channels_last", "bias_regularizer": null, "use_bias": true, "dilation_rate": [1, 1], "padding": "same", "trainable": true, "strides": [2, 2]}, "inbound_nodes": [[["activation_1", 0, 0, {}]]]}, {"class_name": "BatchNormalization", "name": "batch_normalization_2", "config": {"epsilon": 0.001, "gamma_constraint": null, "momentum": 0.99, "beta_regularizer": null, "moving_mean_initializer": {"class_name": "Zeros", "config": {}}, "name": "batch_normalization_2", "center": true, "gamma_regularizer": null, "beta_initializer": {"class_name": "Zeros", "config": {}}, "axis": -1, "gamma_initializer": {"class_name": "Ones", "config": {}}, "scale": true, "moving_variance_initializer": {"class_name": "Ones", "config": {}}, "trainable": true, "beta_constraint": null}, "inbound_nodes": [[["conv2d_2", 0, 0, {}]]]}, {"class_name": "Activation", "name": "activation_2", "config": {"activation": "relu", "trainable": true, "name": "activation_2"}, "inbound_nodes": [[["batch_normalization_2", 0, 0, {}]]]}, {"class_name": "Conv2D", "name": "conv2d_4", "config": {"bias_initializer": {"class_name": "Zeros", "config": {}}, "filters": 32, "kernel_initializer": {"class_name": "VarianceScaling", "config": {"scale": 1.0, "distribution": "uniform", "mode": "fan_avg", "seed": null}}, "kernel_size": [1, 1], "activation": "linear", "activity_regularizer": null, "name": "conv2d_4", "bias_constraint": null, "kernel_constraint": null, "kernel_regularizer": null, "data_format": "channels_last", "bias_regularizer": null, "use_bias": true, "dilation_rate": [1, 1], "padding": "same", "trainable": true, "strides": [2, 2]}, "inbound_nodes": [[["max_pooling2d_1", 0, 0, {}]]]}, {"class_name": "Conv2D", "name": "conv2d_3", "config": {"bias_initializer": {"class_name": "Zeros", "config": {}}, "filters": 32, "kernel_initializer": {"class_name": "VarianceScaling", "config": {"scale": 2.0, "distribution": "normal", "mode": "fan_in", "seed": null}}, "kernel_size": [3, 3], "activation": "linear", "activity_regularizer": null, "name": "conv2d_3", "bias_constraint": null, "kernel_constraint": null, "kernel_regularizer": {"class_name": "L1L2", "config": {"l2": 9.999999747378752e-05, "l1": 0.0}}, "data_format": "channels_last", "bias_regularizer": null, "use_bias": true, "dilation_rate": [1, 1], "padding": "same", "trainable": true, "strides": [1, 1]}, "inbound_nodes": [[["activation_2", 0, 0, {}]]]}, {"class_name": "Add", "name": "add_1", "config": {"name": "add_1", "trainable": true}, "inbound_nodes": [[["conv2d_4", 0, 0, {}], ["conv2d_3", 0, 0, {}]]]}, {"class_name": "BatchNormalization", "name": "batch_normalization_3", "config": {"epsilon": 0.001, "gamma_constraint": null, "momentum": 0.99, "beta_regularizer": null, "moving_mean_initializer": {"class_name": "Zeros", "config": {}}, "name": "batch_normalization_3", "center": true, "gamma_regularizer": null, "beta_initializer": {"class_name": "Zeros", "config": {}}, "axis": -1, "gamma_initializer": {"class_name": "Ones", "config": {}}, "scale": true, "moving_variance_initializer": {"class_name": "Ones", "config": {}}, "trainable": true, "beta_constraint": null}, "inbound_nodes": [[["add_1", 0, 0, {}]]]}, {"class_name": "Activation", "name": "activation_3", "config": {"activation": "relu", "trainable": true, "name": "activation_3"}, "inbound_nodes": [[["batch_normalization_3", 0, 0, {}]]]}, {"class_name": "Conv2D", "name": "conv2d_5", "config": {"bias_initializer": {"class_name": "Zeros", "config": {}}, "filters": 64, "kernel_initializer": {"class_name": "VarianceScaling", "config": {"scale": 2.0, "distribution": "normal", "mode": "fan_in", "seed": null}}, "kernel_size": [3, 3], "activation": "linear", "activity_regularizer": null, "name": "conv2d_5", "bias_constraint": null, "kernel_constraint": null, "kernel_regularizer": {"class_name": "L1L2", "config": {"l2": 9.999999747378752e-05, "l1": 0.0}}, "data_format": "channels_last", "bias_regularizer": null, "use_bias": true, "dilation_rate": [1, 1], "padding": "same", "trainable": true, "strides": [2, 2]}, "inbound_nodes": [[["activation_3", 0, 0, {}]]]}, {"class_name": "BatchNormalization", "name": "batch_normalization_4", "config": {"epsilon": 0.001, "gamma_constraint": null, "momentum": 0.99, "beta_regularizer": null, "moving_mean_initializer": {"class_name": "Zeros", "config": {}}, "name": "batch_normalization_4", "center": true, "gamma_regularizer": null, "beta_initializer": {"class_name": "Zeros", "config": {}}, "axis": -1, "gamma_initializer": {"class_name": "Ones", "config": {}}, "scale": true, "moving_variance_initializer": {"class_name": "Ones", "config": {}}, "trainable": true, "beta_constraint": null}, "inbound_nodes": [[["conv2d_5", 0, 0, {}]]]}, {"class_name": "Activation", "name": "activation_4", "config": {"activation": "relu", "trainable": true, "name": "activation_4"}, "inbound_nodes": [[["batch_normalization_4", 0, 0, {}]]]}, {"class_name": "Conv2D", "name": "conv2d_7", "config": {"bias_initializer": {"class_name": "Zeros", "config": {}}, "filters": 64, "kernel_initializer": {"class_name": "VarianceScaling", "config": {"scale": 1.0, "distribution": "uniform", "mode": "fan_avg", "seed": null}}, "kernel_size": [1, 1], "activation": "linear", "activity_regularizer": null, "name": "conv2d_7", "bias_constraint": null, "kernel_constraint": null, "kernel_regularizer": null, "data_format": "channels_last", "bias_regularizer": null, "use_bias": true, "dilation_rate": [1, 1], "padding": "same", "trainable": true, "strides": [2, 2]}, "inbound_nodes": [[["add_1", 0, 0, {}]]]}, {"class_name": "Conv2D", "name": "conv2d_6", "config": {"bias_initializer": {"class_name": "Zeros", "config": {}}, "filters": 64, "kernel_initializer": {"class_name": "VarianceScaling", "config": {"scale": 2.0, "distribution": "normal", "mode": "fan_in", "seed": null}}, "kernel_size": [3, 3], "activation": "linear", "activity_regularizer": null, "name": "conv2d_6", "bias_constraint": null, "kernel_constraint": null, "kernel_regularizer": {"class_name": "L1L2", "config": {"l2": 9.999999747378752e-05, "l1": 0.0}}, "data_format": "channels_last", "bias_regularizer": null, "use_bias": true, "dilation_rate": [1, 1], "padding": "same", "trainable": true, "strides": [1, 1]}, "inbound_nodes": [[["activation_4", 0, 0, {}]]]}, {"class_name": "Add", "name": "add_2", "config": {"name": "add_2", "trainable": true}, "inbound_nodes": [[["conv2d_7", 0, 0, {}], ["conv2d_6", 0, 0, {}]]]}, {"class_name": "BatchNormalization", "name": "batch_normalization_5", "config": {"epsilon": 0.001, "gamma_constraint": null, "momentum": 0.99, "beta_regularizer": null, "moving_mean_initializer": {"class_name": "Zeros", "config": {}}, "name": "batch_normalization_5", "center": true, "gamma_regularizer": null, "beta_initializer": {"class_name": "Zeros", "config": {}}, "axis": -1, "gamma_initializer": {"class_name": "Ones", "config": {}}, "scale": true, "moving_variance_initializer": {"class_name": "Ones", "config": {}}, "trainable": true, "beta_constraint": null}, "inbound_nodes": [[["add_2", 0, 0, {}]]]}, {"class_name": "Activation", "name": "activation_5", "config": {"activation": "relu", "trainable": true, "name": "activation_5"}, "inbound_nodes": [[["batch_normalization_5", 0, 0, {}]]]}, {"class_name": "Conv2D", "name": "conv2d_8", "config": {"bias_initializer": {"class_name": "Zeros", "config": {}}, "filters": 128, "kernel_initializer": {"class_name": "VarianceScaling", "config": {"scale": 2.0, "distribution": "normal", "mode": "fan_in", "seed": null}}, "kernel_size": [3, 3], "activation": "linear", "activity_regularizer": null, "name": "conv2d_8", "bias_constraint": null, "kernel_constraint": null, "kernel_regularizer": {"class_name": "L1L2", "config": {"l2": 9.999999747378752e-05, "l1": 0.0}}, "data_format": "channels_last", "bias_regularizer": null, "use_bias": true, "dilation_rate": [1, 1], "padding": "same", "trainable": true, "strides": [2, 2]}, "inbound_nodes": [[["activation_5", 0, 0, {}]]]}, {"class_name": "BatchNormalization", "name": "batch_normalization_6", "config": {"epsilon": 0.001, "gamma_constraint": null, "momentum": 0.99, "beta_regularizer": null, "moving_mean_initializer": {"class_name": "Zeros", "config": {}}, "name": "batch_normalization_6", "center": true, "gamma_regularizer": null, "beta_initializer": {"class_name": "Zeros", "config": {}}, "axis": -1, "gamma_initializer": {"class_name": "Ones", "config": {}}, "scale": true, "moving_variance_initializer": {"class_name": "Ones", "config": {}}, "trainable": true, "beta_constraint": null}, "inbound_nodes": [[["conv2d_8", 0, 0, {}]]]}, {"class_name": "Activation", "name": "activation_6", "config": {"activation": "relu", "trainable": true, "name": "activation_6"}, "inbound_nodes": [[["batch_normalization_6", 0, 0, {}]]]}, {"class_name": "Conv2D", "name": "conv2d_10", "config": {"bias_initializer": {"class_name": "Zeros", "config": {}}, "filters": 128, "kernel_initializer": {"class_name": "VarianceScaling", "config": {"scale": 1.0, "distribution": "uniform", "mode": "fan_avg", "seed": null}}, "kernel_size": [1, 1], "activation": "linear", "activity_regularizer": null, "name": "conv2d_10", "bias_constraint": null, "kernel_constraint": null, "kernel_regularizer": null, "data_format": "channels_last", "bias_regularizer": null, "use_bias": true, "dilation_rate": [1, 1], "padding": "same", "trainable": true, "strides": [2, 2]}, "inbound_nodes": [[["add_2", 0, 0, {}]]]}, {"class_name": "Conv2D", "name": "conv2d_9", "config": {"bias_initializer": {"class_name": "Zeros", "config": {}}, "filters": 128, "kernel_initializer": {"class_name": "VarianceScaling", "config": {"scale": 2.0, "distribution": "normal", "mode": "fan_in", "seed": null}}, "kernel_size": [3, 3], "activation": "linear", "activity_regularizer": null, "name": "conv2d_9", "bias_constraint": null, "kernel_constraint": null, "kernel_regularizer": {"class_name": "L1L2", "config": {"l2": 9.999999747378752e-05, "l1": 0.0}}, "data_format": "channels_last", "bias_regularizer": null, "use_bias": true, "dilation_rate": [1, 1], "padding": "same", "trainable": true, "strides": [1, 1]}, "inbound_nodes": [[["activation_6", 0, 0, {}]]]}, {"class_name": "Add", "name": "add_3", "config": {"name": "add_3", "trainable": true}, "inbound_nodes": [[["conv2d_10", 0, 0, {}], ["conv2d_9", 0, 0, {}]]]}, {"class_name": "Flatten", "name": "flatten_1", "config": {"name": "flatten_1", "trainable": true}, "inbound_nodes": [[["add_3", 0, 0, {}]]]}, {"class_name": "Activation", "name": "activation_7", "config": {"activation": "relu", "trainable": true, "name": "activation_7"}, "inbound_nodes": [[["flatten_1", 0, 0, {}]]]}, {"class_name": "Dropout", "name": "dropout_1", "config": {"name": "dropout_1", "rate": 0.5, "trainable": true}, "inbound_nodes": [[["activation_7", 0, 0, {}]]]}, {"class_name": "Dense", "name": "dense_2", "config": {"bias_initializer": {"class_name": "Zeros", "config": {}}, "kernel_initializer": {"class_name": "VarianceScaling", "config": {"scale": 1.0, "distribution": "uniform", "mode": "fan_avg", "seed": null}}, "activation": "linear", "activity_regularizer": null, "name": "dense_2", "units": 1, "kernel_constraint": null, "kernel_regularizer": null, "bias_regularizer": null, "use_bias": true, "trainable": true, "bias_constraint": null}, "inbound_nodes": [[["dropout_1", 0, 0, {}]]]}, {"class_name": "Dense", "name": "dense_1", "config": {"bias_initializer": {"class_name": "Zeros", "config": {}}, "kernel_initializer": {"class_name": "VarianceScaling", "config": {"scale": 1.0, "distribution": "uniform", "mode": "fan_avg", "seed": null}}, "activation": "linear", "activity_regularizer": null, "name": "dense_1", "units": 1, "kernel_constraint": null, "kernel_regularizer": null, "bias_regularizer": null, "use_bias": true, "trainable": true, "bias_constraint": null}, "inbound_nodes": [[["dropout_1", 0, 0, {}]]]}, {"class_name": "Activation", "name": "activation_8", "config": {"activation": "sigmoid", "trainable": true, "name": "activation_8"}, "inbound_nodes": [[["dense_2", 0, 0, {}]]]}]}}
+\ No newline at end of file
+diff --git a/model/model_weights.h5 b/model/model_weights.h5
+deleted file mode 100644
+index 2b55306..0000000
+Binary files a/model/model_weights.h5 and /dev/null differ
+diff --git a/plot_loss.py b/plot_loss.py
+old mode 100644
+new mode 100755
+diff --git a/plot_results.py b/plot_results.py
+old mode 100644
+new mode 100755
+diff --git a/utils.py b/utils.py
+old mode 100644
+new mode 100755
+index 36840b5..222f458
+--- a/utils.py
++++ b/utils.py
+@@ -14,14 +14,13 @@ import img_utils
+ 
+ 
+ class DroneDataGenerator(ImageDataGenerator):
++    #print('Entered Drone Data Generator')
+     """
+     Generate minibatches of images and labels with real-time augmentation.
+-
+     The only function that changes w.r.t. parent class is the flow that
+     generates data. This function needed in fact adaptation for different
+     directory structure and labels. All the remaining functions remain
+     unchanged.
+-
+     For an example usage, see the evaluate.py script
+     """
+     def flow_from_directory(self, directory, target_size=(224,224),
+@@ -51,7 +50,6 @@ class DroneDirectoryIterator(Iterator):
+            folder_n/
+                     images/
+                     sync_steering.txt or labels.txt
+-
+     # Arguments
+        directory: Path to the root directory to read data from.
+        image_data_generator: Image Generator.
+@@ -62,7 +60,6 @@ class DroneDirectoryIterator(Iterator):
+        shuffle: Whether to shuffle data or not
+        seed : numpy seed to shuffle data
+        follow_links: Bool, whether to follow symbolic links or not
+-
+     # TODO: Add functionality to save images to have a look at the augmentation
+     """
+     def __init__(self, directory, image_data_generator,
+@@ -106,6 +103,7 @@ class DroneDirectoryIterator(Iterator):
+ 
+         # Conversion of list into array
+         self.ground_truth = np.array(self.ground_truth, dtype = K.floatx())
++        #print('Ground Truth', self.ground_truth)
+ 
+         assert self.samples > 0, "Did not find any data"
+ 
+@@ -159,17 +157,19 @@ class DroneDirectoryIterator(Iterator):
+                     self.ground_truth.append(ground_truth[frame_number])
+                     self.exp_type.append(exp_type)
+                     self.samples += 1
++        #print('HEREEEEEEEEEEEE')
+ 
+-    def next(self):
++    #Adding this function and calling it in next
++    def _get_batches_of_transformed_samples(self, index_array):
+         """
+         Public function to fetch next batch.
+-
++        
+         # Returns
+             The next batch of images and labels.
+         """
+-        with self.lock:
+-            index_array = next(self.index_generator)
+-            current_batch_size = index_array.shape[0]
++        #print('index array transformed:',index_array)
++        current_batch_size = index_array.shape[0]
++        #current_batch_size = index_array[0].shape[0]
+ 
+         # Image transformation is not under thread lock, so it can be done in
+         # parallel
+@@ -210,6 +210,55 @@ class DroneDirectoryIterator(Iterator):
+         return batch_x, batch_y
+ 
+ 
++    def next(self):
++        """
++        Public function to fetch next batch.
++        # Returns
++            The next batch of images and labels.
++        """
++        with self.lock:
++            index_array = next(self.index_generator)
++            #print('index array in utils',index_array)
++            #current_batch_size = index_array.shape[0]
++            #current_batch_size = index_array[0].shape[0]
++
++        return self._get_batches_of_transformed_samples(index_array)
++
++        ''''
++        # Image transformation is not under thread lock, so it can be done in
++        # parallel
++        batch_x = np.zeros((current_batch_size,) + self.image_shape,
++                dtype=K.floatx())
++        batch_steer = np.zeros((current_batch_size, 2,),
++                dtype=K.floatx())
++        batch_coll = np.zeros((current_batch_size, 2,),
++                dtype=K.floatx())
++        grayscale = self.color_mode == 'grayscale'
++        # Build batch of image data
++        for i, j in enumerate(index_array[0]):
++            fname = self.filenames[j]
++            x = img_utils.load_img(os.path.join(self.directory, fname),
++                    grayscale=grayscale,
++                    crop_size=self.crop_size,
++                    target_size=self.target_size)
++            x = self.image_data_generator.random_transform(x)
++            x = self.image_data_generator.standardize(x)
++            batch_x[i] = x
++            # Build batch of steering and collision data
++            if self.exp_type[index_array[i]] == 1:
++                # Steering experiment (t=1)
++                batch_steer[i,0] =1.0
++                batch_steer[i,1] = self.ground_truth[index_array[i]]
++                batch_coll[i] = np.array([1.0, 0.0])
++            else:
++                # Collision experiment (t=0)
++                batch_steer[i] = np.array([0.0, 0.0])
++                batch_coll[i,0] = 0.0
++                batch_coll[i,1] = self.ground_truth[index_array[i]]
++        batch_y = [batch_steer, batch_coll]
++        return batch_x, batch_y
++        '''
++
+ 
+ def compute_predictions_and_gt(model, generator, steps,
+                                      max_q_size=10,
+@@ -220,7 +269,6 @@ def compute_predictions_and_gt(model, generator, steps,
+     The generator should return the same kind of data as accepted by
+     `predict_on_batch`.
+     Function adapted from keras `predict_generator`.
+-
+     # Arguments
+         generator: Generator yielding batches of input samples.
+         steps: Total number of steps (batches of samples)
+@@ -234,10 +282,8 @@ def compute_predictions_and_gt(model, generator, steps,
+             as they can't be passed
+             easily to children processes.
+         verbose: verbosity mode, 0 or 1.
+-
+     # Returns
+         Numpy array(s) of predictions and associated ground truth.
+-
+     # Raises
+         ValueError: In case the generator yields
+             data in an invalid format.
+@@ -309,10 +355,8 @@ def compute_predictions_and_gt(model, generator, steps,
+ def hard_mining_mse(k):
+     """
+     Compute MSE for steering evaluation and hard-mining for the current batch.
+-
+     # Arguments
+         k: number of samples for hard-mining.
+-
+     # Returns
+         custom_mse: average MSE for the current batch.
+     """
+@@ -350,10 +394,8 @@ def hard_mining_mse(k):
+ def hard_mining_entropy(k):
+     """
+     Compute binary cross-entropy for collision evaluation and hard-mining.
+-
+     # Arguments
+         k: Number of samples for hard-mining.
+-
+     # Returns
+         custom_bin_crossentropy: average binary cross-entropy for the current batch.
+     """
+@@ -415,4 +457,4 @@ def write_to_file(dictionary, fname):
+     """
+     with open(fname, "w") as f:
+         json.dump(dictionary,f)
+-        print("Written file {}".format(fname))
++        print("Written file {}".format(fname))
+\ No newline at end of file
