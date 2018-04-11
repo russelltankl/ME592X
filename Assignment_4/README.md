@@ -1,3 +1,4 @@
+
 # Imitation Learning on Turtlebot
 The goal of this assignment is to implement an imitation learning algorithm onto the Turtlebot.
 
@@ -40,11 +41,11 @@ After both dataset is arranged, merge both datasets together. Eg: Merge `trainin
 
 ### Results
 After multiple runs, we found that Run 2 gave us the best results.
-![loss](images/Result1)
+![loss](images/loss.png)
 
-![histogram](images/Result2)
+![histogram](images/hist.png)
 
-![confusionmatrix](images/Result3)
+![confusionmatrix](images/confusion.png)
 
 ### Turtlebot Implementation
 >This section is still in-progress
@@ -70,8 +71,10 @@ What is an assignment without challenges? Every step of this assignment has give
 
 * Rosbag extractions
   * Initially, we tried to extract the rosbag without using Udacity's code because we wanted to avoid interfacing with Docker (requirement to run their code). We spent about 4 days just trying other methods, such as: 
-  > `rostopic echo -b file.bag -p /topic > data.txt`, 
-  > [Exporting image and video data](http://wiki.ros.org/rosbag/Tutorials/Exporting%20image%20and%20video%20data), 
+  > `rostopic echo -b file.bag -p /topic > data.txt`
+  >  
+  > [Exporting image and video data](http://wiki.ros.org/rosbag/Tutorials/Exporting%20image%20and%20video%20data)
+  > 
   > `rosrun image_view extract_images image:=/center_camera/image_color _image_transport:=compressed`
   
    * In the last code above, `rosrun`, worked. But the issue is, everytime we do the extraction it gives us a different number of images extracted. This is probably due to a random capture delays everytime we execute the code (The code requires two terminals open, one to play the bag file, one to capture).
@@ -79,9 +82,11 @@ What is an assignment without challenges? Every step of this assignment has give
  * Version mismatch for Keras and Tensorflow in the cluster. 
    * For MobileNet, it requires the latest version of Keras, 2.1.5 and Tensorflow 1.7.0 for DepthwiseConv. 
    * In the cluster, there is a conflict with PYTHONPATH when upgrading versions. Basically when we update, it doesn't update the path to use the newest update.
+   * We changes the [utils.py](https://github.com/russelltankl/ME592X/blob/master/Assignment_4/utils.py) (from the dronet repo) and [image.py](https://github.com/russelltankl/ME592X/blob/master/Assignment_4/image.py) (from personal python lib) to make it work.
    
   * Remotely connect to Turtlebot
-  
+    * Currently, Turtlebot is connected to a monitor, keyboard and mouse. 
+    * We want to remotely control Turtlebot so it could freely roam around and hopefully it doesn't crash and burn.
   
   * Killing Turtlebot
     * The motivation to do this was because we wanted a purely python 3.6 without 2.7 in Ubuntu 14.04.2, due to possible version mismatch when dealing with the latest Keras and Tensorflow for model inference.
