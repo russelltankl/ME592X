@@ -37,8 +37,6 @@ As mentioned earlier, this dataset was presented in rosbag formats. We used
 
 After both dataset is arranged, merge both datasets together. Eg: Merge `training/` from both steering angle and collision.
 
-### Mini-MobileNet
-
 ### Results
 After multiple runs, we found that Run 2 gave us the best results.
 ![loss](images/loss.png)
@@ -82,7 +80,7 @@ What is an assignment without challenges? Every step of this assignment has give
  * Version mismatch for Keras and Tensorflow in the cluster. 
    * For MobileNet, it requires the latest version of Keras, 2.1.5 and Tensorflow 1.7.0 for DepthwiseConv. 
    * In the cluster, there is a conflict with PYTHONPATH when upgrading versions. Basically when we update, it doesn't update the path to use the newest update.
-   * We changes the [utils.py](https://github.com/russelltankl/ME592X/blob/master/Assignment_4/utils.py) (from the dronet repo) and [image.py](https://github.com/russelltankl/ME592X/blob/master/Assignment_4/image.py) (from personal python lib) to make it work.
+   * We changed the [utils.py](https://github.com/russelltankl/ME592X/blob/master/Assignment_4/utils.py) (from the dronet repo) and [image.py](https://github.com/russelltankl/ME592X/blob/master/Assignment_4/image.py) (from personal python lib) to make it work.
    
   * Remotely connect to Turtlebot
     * Currently, Turtlebot is connected to a monitor, keyboard and mouse. 
